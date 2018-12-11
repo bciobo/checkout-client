@@ -3,11 +3,15 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
 const webpack = require('webpack');
 
-
+console.log(path.resolve(__dirname, 'src'));
 const config = {
     mode: (process.env.NODE_ENV === "production") ? 'production' : 'development',
     devtool: (process.env.NODE_ENV === "production") ? false : 'eval-source-map',
-    entry: path.resolve(__dirname, 'src'),
+    entry: {
+        checkout: path.resolve(__dirname, 'src/checkout.js'),
+        utilities: path.resolve(__dirname, 'src/payment_utilities.js'),
+        store: path.resolve(__dirname, 'src/store.js'),
+    },
     output: {
         filename: 'bundle.js',
         path: path.resolve(__dirname, 'dist')
@@ -35,9 +39,6 @@ const config = {
                     exclude: /node_modules/,
                     use: {
                         loader: 'babel-loader',
-                        options: {
-                            presets: ['@babel/preset-env']
-                        }
                     }
                 },
                 {
@@ -47,12 +48,12 @@ const config = {
             ]
     },
     plugins: [
-        new HtmlWebpackPlugin({
-            template: 'src/index.html',
-            options: {
-                favicon: 'src/favicon.ico'
-            }
-        }),
+        // new HtmlWebpackPlugin({
+        //     template: 'src/index.html',
+        //     options: {
+        //         favicon: 'src/favicon.ico'
+        //     }
+        // }),
         new webpack.HotModuleReplacementPlugin(),
         new CleanWebpackPlugin(['dist']),
     ],
