@@ -86,3 +86,4 @@ typings/
 *.iml
 out
 gen
+/dist/bundle.js
