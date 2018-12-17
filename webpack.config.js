@@ -1,19 +1,18 @@
-const path = require('path');
-const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CleanWebpackPlugin = require('clean-webpack-plugin');
-const webpack = require('webpack');
+const path = require('path');
 
-console.log(path.resolve(__dirname, 'src'));
 const config = {
     mode: (process.env.NODE_ENV === "production") ? 'production' : 'development',
     devtool: (process.env.NODE_ENV === "production") ? false : 'eval-source-map',
+    watch: (process.env.NODE_ENV === "development"),
     entry: {
-        checkout: path.resolve(__dirname, 'src/checkout.js'),
-        utilities: path.resolve(__dirname, 'src/payment_utilities.js'),
-        store: path.resolve(__dirname, 'src/store.js'),
+        'bundle.js': [
+            path.resolve(__dirname, 'src/checkout.js'),
+            path.resolve(__dirname, 'src/payment_utilities.js'),
+            path.resolve(__dirname, 'src/store.js'),]
     },
     output: {
-        filename: 'bundle.js',
+        filename: '[name]',
         path: path.resolve(__dirname, 'dist')
     },
     module: {
@@ -48,21 +47,9 @@ const config = {
             ]
     },
     plugins: [
-        // new HtmlWebpackPlugin({
-        //     template: 'src/index.html',
-        //     options: {
-        //         favicon: 'src/favicon.ico'
-        //     }
-        // }),
-        new webpack.HotModuleReplacementPlugin(),
+        // new HtmlWebpackPlugin()
         new CleanWebpackPlugin(['dist']),
     ],
-    devServer: {
-        contentBase: path.join(__dirname, 'dist'),
-        compress: true,
-        port: 7001,
-        hot: true
-    }
 };
 
 module.exports = config;
