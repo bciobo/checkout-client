@@ -1,5 +1,5 @@
 import {Store} from "./store";
-import {createPaypalButton} from "./payment_utilities";
+import {createCardElement, createIbanElement, createPaypalButton} from "./payment_utilities";
 
 // Create a map of the button ids and course names
 const courseIdNameMap = new Map();
@@ -15,9 +15,11 @@ export class Checkout {
         this.formId = 'checkout-form';
         // payment options: radio inputs & buttons
         this.cardRadioInputId = 'kreditkarte-2';
-        this.cardElementId = '';
+        this.cardElementId = '#card-element';
+        this.cardErrosElement = document.getElementById('card-errors');
         this.ibanRadioInputId = 'lastschrift-2';
-        this.ibanElementId = '';
+        this.ibanElementId = '#iban-element';
+        this.ibanErrosElement = document.getElementById('iban-errors');
         this.paypalRadioInputId = 'paypal-2';
         this.paypalButtonContainerId = 'paypal-button-container';
         this.submitButtonContainerId = 'submit-button-container';
@@ -26,9 +28,16 @@ export class Checkout {
             let courseKey = window.location.href.substr(window.location.href.lastIndexOf('/') + 1);
             this._courseName = courseIdNameMap.get(courseKey);
             this._amount = 6900;
+
+            this.store.getConfig().then(config => {
+                this._config = config;
+                // this.stripe = Stripe(this._config.stripePublishableKey);
+                this.stripe = Stripe('pk_test_CiXf29IdSdWEmeZGORUfnSFc');
+                this.createPaymentElements();
+            });
+
             this.createRefs();
             this.addListeners();
-            this.createPaymentElements();
         } else console.warn('Not on a checkout page. Stopping.');
     }
 
@@ -87,7 +96,11 @@ export class Checkout {
 
     createPaymentElements = () => {
         createPaypalButton(this.paypalButtonContainerId, this.amount, this.courseName, this.paypalOnValidate,
-            this.paypalOnAuthorize, this.paypalOnError, this.paypalOnClick)
+            this.paypalOnAuthorize, this.paypalOnError, this.paypalOnClick);
+
+        createCardElement(this.stripe, this.cardElementId, this.submitButton, this.cardErrosElement);
+
+        createIbanElement(this.stripe, this.ibanElementId, this.submitButton, this.ibanErrosElement);
     };
 
     paypalOnClick = () => {
@@ -107,18 +120,6 @@ export class Checkout {
         // showConfirmationScreen();
         // trackCourseBuy();
     };
-
-    // isMobile = () => {
-    //     return window.matchMedia("only screen and (max-width: 760px)").matches;
-    // };
-
-    // readUrl = () => {
-    //     const courseKey = window.location.href.substr(window.location.href.lastIndexOf('/') + 1);
-    //     const courseName = courseIdNameMap.get(courseKey);
-    //     if (courseName) {
-    //         displaySelectedCourse();
-    //     }
-    // };
 
     onCheckoutPage = () => {
         const courseKey = window.location.href.substr(
