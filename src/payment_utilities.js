@@ -116,7 +116,9 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
         // Show the buyer a 'Pay Now' button in the checkout flow
         commit: true,
 
-        validate: validateHandler(actions),
+        validate: function (actions) {
+            validateHandler(actions)
+        },
 
         // payment() is called when the button is clicked
         payment: function (data, actions) {
@@ -151,7 +153,9 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
         },
 
         // onAuthorize() is called when the buyer approves the payment
-        onAuthorize: authorizeHandler(data, actions),
+        onAuthorize: function (data, actions) {
+            return actions.payment.execute().then(authorizeHandler())
+        },
 
         // called if the buyer cancels the payment
         // By default, the buyer is returned to the original page,
@@ -163,9 +167,13 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
         },
         // called when an error occurs
         // You can allow the buyer to re-try or show an error message
-        onError: errorHandler(err),
+        onError: function (err) {
+            errorHandler(err)
+        },
         // called for every click on the PayPal button
-        onClick: clickHandler()
+        onClick: function () {
+            clickHandler()
+        }
 
     }, paypalButtonContainerId);
 };

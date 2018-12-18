@@ -35,6 +35,7 @@ export class Checkout {
     createRefs = () => {
         this.form = document.getElementById(this.formId);
         this.submitButton = this.form.querySelector('input[type=submit]');
+        this.submitButtonContainer = document.getElementById(this.submitButtonContainerId);
         this.cardRadioInput = document.getElementById(this.cardRadioInputId);
         this.ibanRadioInput = document.getElementById(this.ibanRadioInputId);
         this.paypalRadioInput = document.getElementById(this.paypalRadioInputId);
@@ -50,11 +51,14 @@ export class Checkout {
             console.log('submit button clicked', event)
         });
 
-        this.cardRadioInput.onchange = (ev => console.log('card',ev.target.checked));
-        this.ibanRadioInput.onchange = (ev => console.log('iban',ev.target.checked));
+        this.cardRadioInput.onchange = (ev => {
+            if (ev.target.checked) this.displayPaymentButton('card')
+        });
+        this.ibanRadioInput.onchange = (ev => {
+            if (ev.target.checked) this.displayPaymentButton('iban')
+        });
         this.paypalRadioInput.onchange = (ev => {
-            console.log('paypal',ev.target.checked)
-
+            if (ev.target.checked) this.displayPaymentButton('paypal')
         });
 
     };
@@ -62,12 +66,12 @@ export class Checkout {
     displayPaymentButton(paymentMethod) {
         switch (paymentMethod) {
             case 'paypal':
-                this.submitButton.setAttribute('style', "display: none");
+                this.submitButtonContainer.setAttribute('style', "display: none");
                 this.paypalbuttonContainer.setAttribute('style', "display: block");
                 break;
             case 'iban':
             case 'card':
-                this.submitButton.setAttribute('style', "display: block");
+                this.submitButtonContainer.setAttribute('style', "display: block");
                 this.paypalbuttonContainer.setAttribute('style', "display: none");
                 break;
         }
@@ -98,13 +102,10 @@ export class Checkout {
         (this.form.checkValidity()) ? actions.enable() : actions.disable();
     };
 
-    paypalOnAuthorize = (data, actions) => {
-        // Make a call to the REST api to execute the payment
-        return actions.payment.execute().then(() => {
-            // TODO handle paypal execution
-            // showConfirmationScreen();
-            // trackCourseBuy();
-        });
+    paypalOnAuthorize = () => {
+        // TODO handle paypal execution
+        // showConfirmationScreen();
+        // trackCourseBuy();
     };
 
     // isMobile = () => {
@@ -141,6 +142,6 @@ injectDependency(document, 'https://www.paypalobjects.com/api/checkout.js');
 injectDependency(document, 'https://js.stripe.com/v3/');
 
 document.onreadystatechange = () => {
-    if(document.readyState === 'complete') window.checkout = new Checkout();
+    if (document.readyState === 'complete') window.checkout = new Checkout();
 };
 
