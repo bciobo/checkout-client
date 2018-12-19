@@ -1,5 +1,5 @@
 import {Store} from "./store";
-import {createCardElement, createIbanElement, createPaypalButton} from "./payment_utilities";
+import {createCardElement, createIbanElement, createPaypalButton, handleOrder} from "./payment_utilities";
 
 // Create a map of the button ids and course names
 const courseIdNameMap = new Map();
@@ -8,6 +8,8 @@ courseIdNameMap.set("kasse-lw", "Langsamer Walzer");
 courseIdNameMap.set("kasse-df", "Discofox");
 courseIdNameMap.set("kasse-design", "Discofox");
 
+//TODO add google analytics service
+//TODO remove all console output
 export class Checkout {
     constructor() {
         this.store = new Store();
@@ -25,15 +27,23 @@ export class Checkout {
         this.submitButtonContainerId = 'submit-button-container';
 
         if (this.onCheckoutPage()) {
+            // identify selected course based on URL
             let courseKey = window.location.href.substr(window.location.href.lastIndexOf('/') + 1);
             this._courseName = courseIdNameMap.get(courseKey);
-            this._amount = 6900;
+
 
             this.store.getConfig().then(config => {
                 this._config = config;
+                //TODO use key from config
                 // this.stripe = Stripe(this._config.stripePublishableKey);
                 this.stripe = Stripe('pk_test_CiXf29IdSdWEmeZGORUfnSFc');
                 this.createPaymentElements();
+            });
+
+            this.store.loadProducts().then(() => {
+                this.store.addItemToList(this._courseName);
+                this._amount = this.store.getOrderTotal();
+                console.log('amount', this.amount, ' for', this.courseName);
             });
 
             this.createRefs();
@@ -54,20 +64,32 @@ export class Checkout {
     addListeners = () => {
         this.form.addEventListener('submit', event => {
             event.preventDefault();
+            event.stopPropagation();
             console.log('submit event', event)
+            this.handleSubmit().then(res => console.log('Submit handled!'));
         });
+
         this.submitButton.addEventListener('click', event => {
             console.log('submit button clicked', event)
         });
 
         this.cardRadioInput.onchange = (ev => {
-            if (ev.target.checked) this.displayPaymentButton('card')
+            if (ev.target.checked) {
+                this.payment = 'card';
+                this.displayPaymentButton(this.payment);
+            }
         });
         this.ibanRadioInput.onchange = (ev => {
-            if (ev.target.checked) this.displayPaymentButton('iban')
+            if (ev.target.checked) {
+                this.payment = 'iban';
+                this.displayPaymentButton(this.payment);
+            }
         });
         this.paypalRadioInput.onchange = (ev => {
-            if (ev.target.checked) this.displayPaymentButton('paypal')
+            if (ev.target.checked) {
+                this.payment = 'paypal';
+                this.displayPaymentButton(this.payment);
+            }
         });
 
     };
@@ -98,13 +120,14 @@ export class Checkout {
         createPaypalButton(this.paypalButtonContainerId, this.amount, this.courseName, this.paypalOnValidate,
             this.paypalOnAuthorize, this.paypalOnError, this.paypalOnClick);
 
-        createCardElement(this.stripe, this.cardElementId, this.submitButton, this.cardErrosElement);
+        this.card = createCardElement(this.stripe, this.cardElementId, this.submitButton, this.cardErrosElement);
 
-        createIbanElement(this.stripe, this.ibanElementId, this.submitButton, this.ibanErrosElement);
+        this.iban = createIbanElement(this.stripe, this.ibanElementId, this.submitButton, this.ibanErrosElement);
     };
 
     paypalOnClick = () => {
         console.log('paypal button clicked');
+        if (!this.form.checkValidity()) this.submitButton.click();
     };
 
     paypalOnError = (error) => {
@@ -128,6 +151,57 @@ export class Checkout {
         //TODO remove "kasse-design"
         return (['kasse-ww', 'kasse-lw', 'kasse-df', 'kasse-design'].indexOf(courseKey) > -1);
     };
+
+    async handleSubmit() {
+        // Disable the Pay button to prevent multiple click events.
+        this.submitButton.disabled = true;
+        // Retrieve the user information from the form.
+        this.name = this.form.querySelector('input[id=nam]').value;
+        this.email = this.form.querySelector('input[id=email-4]').value;
+        this.country = this.form.querySelector('select[id=land] option:checked').value;
+        console.log(this.payment, this.name, this.country);
+        // Create the order using the email and shipping information from the form.
+
+        const order = await this.store.createOrder(
+            'eur', this.store.getOrderItems(), this.email, this.name, this.country
+        );
+
+        if (this.payment === 'card') {
+            // Create a Stripe source from the card information and the owner name.
+            const {source} = await
+                this.stripe.createSource(this.card, {
+                    owner: {
+                        name: this.name,
+                    },
+                    metadata: {
+                        course: this.courseName,
+                    }
+                });
+            await handleOrder(order, source, this.submitButton, this.store);
+        } else if (this.payment === 'iban') {
+            // Create a SEPA Debit source from the IBAN information.
+            const sourceData = {
+                type: 'sepa_debit',
+                currency: order.currency,
+                owner: {
+                    name: this.name,
+                    email: this.email,
+                },
+                mandate: {
+                    // Automatically send a mandate notification email to your customer
+                    // once the source is charged.
+                    notification_method: 'email',
+                },
+                metadata: {
+                    course: this.courseName,
+                }
+            };
+            const {source} = await this.stripe.createSource(this.iban, sourceData);
+            await handleOrder(order, source, this.submitButton, this.store);
+        } else {
+            console.error("Unexpected payment method identifier!");
+        }
+    }
 }
 
 
