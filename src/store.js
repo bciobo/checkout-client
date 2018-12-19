@@ -46,7 +46,7 @@ export class Store {
     // Create an order object to represent the line items.
     async createOrder(currency, items, email, customer, country) {
         try {
-            const response = await fetch(`${this.urlPrefix}/orders`, {
+            const response = await fetch(`${this.urlPrefix}/orders/`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
@@ -61,14 +61,11 @@ export class Store {
             if (data.error) {
                 return {error: data.error};
             } else {
-                // Save the current order locally to lookup its status later.
-                this.setActiveOrderId(data.order.id);
                 return data.order;
             }
         } catch (err) {
             return {error: err.message};
         }
-        return order;
     }
 
     // Pay the specified order by sending a payment source alongside it.
