@@ -51,12 +51,11 @@ export const createCardElement = (stripe, elementId, submitButton, errorsElement
 
     // Monitor change events on the Card Element to display any errors.
     card.addEventListener('change', ({error}) => {
-        // const cardErrors = document.getElementById('card-errors');
         if (error) {
             errorsElement.textContent = error.message;
-            errorsElement.classList.add('visible');
+            errorsElement.setAttribute('style', "display: block");
         } else {
-            errorsElement.classList.remove('visible');
+            errorsElement.setAttribute('style', "display: none");
         }
         // Re-enable the Pay button.
         submitButton.disabled = false;
@@ -76,20 +75,17 @@ export const createIbanElement = (stripe, elementId, submitButton, errorsElement
 
     // Monitor change events on the IBAN Element to display any errors.
     iban.on('change', ({error, bankName}) => {
-        // const ibanErrors = document.getElementById('iban-errors');
         if (error) {
             errorsElement.textContent = error.message;
-            errorsElement.classList.add('visible');
+            errorsElement.setAttribute('style', "display: block");
         } else {
-            errorsElement.classList.remove('visible');
-            if (bankName) {
-                //TODO: check if updating button label is necessary here
-                // updateButtonLabel('sepa_debit', bankName);
-            }
+            errorsElement.setAttribute('style', "display: none");
         }
         // Re-enable the Pay button.
         submitButton.disabled = false;
     });
+
+    return iban;
 };
 
 export const createPaypalButton = (paypalButtonContainerId, amountCallback, courseNameCallback,
@@ -101,10 +97,10 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
 
         // PayPal Client IDs - replace with your own
         // Create a PayPal app: https://developer.paypal.com/developer/applications/create
+        //TODO: check if the production ID needs to come from the config
         client: {
             sandbox: 'Afftm3m1c0dUx734SjzbUduO62yQzhxT2J1BptiJF9JfVGhqpMwt4q4rJY-6oLyE5LpB1Adm391Vzner',
-            production: null
-            // production: 'AbRWBZnmecOZ6uTdLcqKWOukOCq5LiKmTDIZUSeb0olKO2U2FpOlN0ysMI0mR3r6SEsl6iPsbpOuh4xa'
+            production: 'AbRWBZnmecOZ6uTdLcqKWOukOCq5LiKmTDIZUSeb0olKO2U2FpOlN0ysMI0mR3r6SEsl6iPsbpOuh4xa'
         },
         style: {
             label: 'paypal',
@@ -123,6 +119,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
 
         // payment() is called when the button is clicked
         payment: function (data, actions) {
+            console.log('paying w/ PayPal...');
             // Make a call to the REST api to create the payment
             return actions.payment.create({
                 payment: {
@@ -177,4 +174,65 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
         }
 
     }, paypalButtonContainerId);
+};
+
+
+// Handle the order and source activation if required
+export const handleOrder = async (order, source, submitButton, store) => {
+    switch (order.status) {
+        case 'created':
+            switch (source.status) {
+                case 'chargeable':
+                    submitButton.textContent = 'Zahlungsvorgang läuft…';
+                    const response = await store.payOrder(order, source);
+                    console.log(response);
+                    await handleOrder(response.order, response.source, submitButton, store);
+                    break;
+                case 'pending':
+                    switch (source.flow) {
+                        case 'none':
+                            // Normally, sources with a `flow` value of `none` are chargeable right away,
+                            // but there are exceptions, for instance for WeChat QR codes just below.
+                            break;
+                        case 'redirect':
+                            // Immediately redirect the customer.
+                            submitButton.textContent = 'Redirecting…';
+                            window.location.replace(source.redirect.url);
+                            break;
+                        case 'code_verification':
+                            // Display a code verification input to verify the source.
+                            break;
+                        default:
+                            // Order is received, pending payment confirmation.
+                            break;
+                    }
+                    break;
+                case 'failed':
+                    break;
+                case 'canceled':
+                    // Authentication failed, offer to select another payment method.
+                    break;
+                default:
+                    // Order is received, pending payment confirmation.
+                    break;
+            }
+            break;
+
+        case 'pending':
+            console.warn('handling "pending" order...');
+            // TODO showConfirmationScreen();
+            // trackCourseBuy();
+            break;
+
+        case 'failed':
+            console.warn('handling "failed" order...');
+            // TODO showErrorScreen(order.metadata.errorMessage);
+            break;
+
+        case 'paid':
+            console.warn('handling "paid" order...');
+            // TODO showConfirmationScreen();
+            // trackCourseBuy();
+            break;
+    }
 };
