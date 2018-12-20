@@ -1,18 +1,25 @@
 import {Store} from "./store";
-import {createCardElement, createIbanElement, createPaypalButton, handleOrder} from "./payment_utilities";
+import {
+    createCardElement,
+    createIbanElement,
+    createPaypalButton,
+    failureUrl,
+    handleOrder,
+    successUrl
+} from "./payment_utilities";
 
 // Create a map of the button ids and course names
 const courseIdNameMap = new Map();
 courseIdNameMap.set("kasse-ww", "Wiener Walzer");
 courseIdNameMap.set("kasse-lw", "Langsamer Walzer");
 courseIdNameMap.set("kasse-df", "Discofox");
-courseIdNameMap.set("kasse-design", "Discofox");
+courseIdNameMap.set("kasse-design", "Langsamer Walzer");
 
 //TODO add google analytics service
 //TODO remove all console output
 export class Checkout {
     constructor() {
-        this.store = new Store();
+        this.store = new Store('http://127.0.0.1:7002');
         // form
         this.formId = 'checkout-form';
         // payment options: radio inputs & buttons
@@ -25,6 +32,7 @@ export class Checkout {
         this.paypalRadioInputId = 'paypal-2';
         this.paypalButtonContainerId = 'paypal-button-container';
         this.submitButtonContainerId = 'submit-button-container';
+        this.checkboxElementId = 'checkbox';
 
         if (this.onCheckoutPage()) {
             // identify selected course based on URL
@@ -34,16 +42,13 @@ export class Checkout {
 
             this.store.getConfig().then(config => {
                 this._config = config;
-                //TODO use key from config
-                // this.stripe = Stripe(this._config.stripePublishableKey);
-                this.stripe = Stripe('pk_test_CiXf29IdSdWEmeZGORUfnSFc');
-                this.createPaymentElements();
-            });
-
-            this.store.loadProducts().then(() => {
-                this.store.addItemToList(this._courseName);
-                this._amount = this.store.getOrderTotal();
-                console.log('amount', this.amount, ' for', this.courseName);
+                this.stripe = Stripe(this._config.stripePublishableKey);
+                this.store.loadProducts().then(() => {
+                    this.store.addItemToList(this._courseName);
+                    this._amount = this.store.getOrderTotal();
+                    console.log('amount', this.amount, ' for', this.courseName);
+                    this.createPaymentElements();
+                });
             });
 
             this.createRefs();
@@ -59,6 +64,7 @@ export class Checkout {
         this.ibanRadioInput = document.getElementById(this.ibanRadioInputId);
         this.paypalRadioInput = document.getElementById(this.paypalRadioInputId);
         this.paypalbuttonContainer = document.getElementById(this.paypalButtonContainerId);
+        this.checkboxElement = document.getElementById(this.checkboxElementId);
     };
 
     addListeners = () => {
@@ -118,7 +124,7 @@ export class Checkout {
 
     createPaymentElements = () => {
         createPaypalButton(this.paypalButtonContainerId, this.amount, this.courseName, this.paypalOnValidate,
-            this.paypalOnAuthorize, this.paypalOnError, this.paypalOnClick);
+            this.paypalOnAuthorize, this.paypalOnError, this.paypalOnClick, this.checkboxElement);
 
         this.card = createCardElement(this.stripe, this.cardElementId, this.submitButton, this.cardErrosElement);
 
@@ -132,6 +138,7 @@ export class Checkout {
 
     paypalOnError = (error) => {
         console.error('Paypal error:', error);
+        window.location.href = failureUrl;
     };
 
     paypalOnValidate = (actions) => {
@@ -139,8 +146,8 @@ export class Checkout {
     };
 
     paypalOnAuthorize = () => {
-        // TODO handle paypal execution
-        // showConfirmationScreen();
+        console.error('Paypal authorized!');
+        window.location.href = successUrl;
         // trackCourseBuy();
     };
 
@@ -200,6 +207,7 @@ export class Checkout {
             await handleOrder(order, source, this.submitButton, this.store);
         } else {
             console.error("Unexpected payment method identifier!");
+            window.location.href = failureUrl;
         }
     }
 }

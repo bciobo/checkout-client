@@ -1,3 +1,8 @@
+// URLs for follow-up pages
+export const successUrl = 'kasse-vielen-dank';
+export const failureUrl = 'kasse-fehler';
+export const waitUrl = 'kasse-warten';
+
 // Prepare the options for Elements to be styled accordingly.
 const elementsOptions = {
     style: {
@@ -89,15 +94,14 @@ export const createIbanElement = (stripe, elementId, submitButton, errorsElement
 };
 
 export const createPaypalButton = (paypalButtonContainerId, amountCallback, courseNameCallback,
-                                   validateHandler, authorizeHandler, errorHandler, clickHandler) => {
+                                   validateHandler, authorizeHandler, errorHandler, clickHandler, checkboxElement) => {
     paypal.Button.render({
 
-        env: 'production', // sandbox | production
+        env: 'sandbox', // sandbox | production TODO move to production
         locale: 'de_DE',
 
         // PayPal Client IDs - replace with your own
         // Create a PayPal app: https://developer.paypal.com/developer/applications/create
-        //TODO: check if the production ID needs to come from the config
         client: {
             sandbox: 'Afftm3m1c0dUx734SjzbUduO62yQzhxT2J1BptiJF9JfVGhqpMwt4q4rJY-6oLyE5LpB1Adm391Vzner',
             production: 'AbRWBZnmecOZ6uTdLcqKWOukOCq5LiKmTDIZUSeb0olKO2U2FpOlN0ysMI0mR3r6SEsl6iPsbpOuh4xa'
@@ -114,12 +118,13 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
         commit: true,
 
         validate: function (actions) {
-            validateHandler(actions)
+            validateHandler(actions);
+
+            checkboxElement.addEventListener('change', () => validateHandler(actions));
         },
 
         // payment() is called when the button is clicked
         payment: function (data, actions) {
-            console.log('paying w/ PayPal...');
             // Make a call to the REST api to create the payment
             return actions.payment.create({
                 payment: {
@@ -127,7 +132,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
                     transactions: [
                         {
                             amount: {
-                                total: amountCallback() / 100,
+                                total: amountCallback / 100,
                                 currency: 'EUR',
                             },
                             description: courseNameCallback,
@@ -137,7 +142,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
                                     {
                                         name: courseNameCallback,
                                         sku: "1",
-                                        price: (amountCallback() / 100).toString() + ".00",
+                                        price: (amountCallback / 100).toString() + ".00",
                                         currency: "EUR",
                                         quantity: "1",
                                         description: courseNameCallback,
@@ -173,7 +178,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
             clickHandler()
         }
 
-    }, paypalButtonContainerId);
+    }, `#${paypalButtonContainerId}`);
 };
 
 
@@ -185,6 +190,10 @@ export const handleOrder = async (order, source, submitButton, store) => {
                 case 'chargeable':
                     submitButton.textContent = 'Zahlungsvorgang läuft…';
                     const response = await store.payOrder(order, source);
+                    if (response.error) {
+                        window.location.href = failureUrl;
+                        break;
+                    }
                     console.log(response);
                     await handleOrder(response.order, response.source, submitButton, store);
                     break;
@@ -208,6 +217,7 @@ export const handleOrder = async (order, source, submitButton, store) => {
                     }
                     break;
                 case 'failed':
+                    window.location.href = failureUrl;
                     break;
                 case 'canceled':
                     // Authentication failed, offer to select another payment method.
@@ -220,19 +230,19 @@ export const handleOrder = async (order, source, submitButton, store) => {
 
         case 'pending':
             console.warn('handling "pending" order...');
-            // TODO showConfirmationScreen();
-            // trackCourseBuy();
+            window.location.href = successUrl;
+            // TODO trackCourseBuy();
             break;
 
         case 'failed':
             console.warn('handling "failed" order...');
-            // TODO showErrorScreen(order.metadata.errorMessage);
+            window.location.href = failureUrl;
             break;
 
         case 'paid':
             console.warn('handling "paid" order...');
-            // TODO showConfirmationScreen();
-            // trackCourseBuy();
+            window.location.href = successUrl;
+            // TODO trackCourseBuy();
             break;
     }
 };
