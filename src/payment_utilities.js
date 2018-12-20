@@ -183,7 +183,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
 
 
 // Handle the order and source activation if required
-export const handleOrder = async (order, source, submitButton, store) => {
+export const handleOrder = async (order, source, submitButton, store, courseName, amount) => {
     switch (order.status) {
         case 'created':
             switch (source.status) {
@@ -191,11 +191,13 @@ export const handleOrder = async (order, source, submitButton, store) => {
                     submitButton.textContent = 'Zahlungsvorgang läuft…';
                     const response = await store.payOrder(order, source);
                     if (response.error) {
+                        console.log('payment failed')
+                        trackCourseFail(courseName);
                         window.location.href = failureUrl;
                         break;
                     }
                     console.log(response);
-                    await handleOrder(response.order, response.source, submitButton, store);
+                    await handleOrder(response.order, response.source, submitButton, store, courseName, amount);
                     break;
                 case 'pending':
                     switch (source.flow) {
@@ -206,6 +208,7 @@ export const handleOrder = async (order, source, submitButton, store) => {
                         case 'redirect':
                             // Immediately redirect the customer.
                             submitButton.textContent = 'Redirecting…';
+                            trackCourseBuy(courseName, amount);
                             window.location.replace(source.redirect.url);
                             break;
                         case 'code_verification':
@@ -217,6 +220,8 @@ export const handleOrder = async (order, source, submitButton, store) => {
                     }
                     break;
                 case 'failed':
+                    console.log('source status failed')
+                    trackCourseFail(courseName);
                     window.location.href = failureUrl;
                     break;
                 case 'canceled':
@@ -230,19 +235,47 @@ export const handleOrder = async (order, source, submitButton, store) => {
 
         case 'pending':
             console.warn('handling "pending" order...');
+            trackCourseBuy(courseName, amount);
             window.location.href = successUrl;
-            // TODO trackCourseBuy();
             break;
 
         case 'failed':
             console.warn('handling "failed" order...');
+            trackCourseFail(courseName);
             window.location.href = failureUrl;
             break;
 
         case 'paid':
             console.warn('handling "paid" order...');
+            trackCourseBuy(courseName, amount);
             window.location.href = successUrl;
-            // TODO trackCourseBuy();
             break;
     }
 };
+
+
+export const trackCourseBuy = (courseName, amount) => {
+    if (ga) {
+        ga('send', {
+            hitType: 'event',
+            eventCategory: 'kurs',
+            eventAction: 'checkout_success',
+            eventLabel: courseName,
+            eventValue: amount / 100
+        });
+    }
+};
+
+
+export const trackCourseFail = (courseName) => {
+    if (ga) {
+        ga('send', {
+            hitType: 'event',
+            eventCategory: 'kurs',
+            eventAction: 'checkout_failed',
+            eventLabel: courseName
+        });
+    }
+};
+
+

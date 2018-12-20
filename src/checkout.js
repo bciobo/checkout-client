@@ -5,7 +5,7 @@ import {
     createPaypalButton,
     failureUrl,
     handleOrder,
-    successUrl
+    successUrl, trackCourseBuy, trackCourseFail
 } from "./payment_utilities";
 
 // Create a map of the button ids and course names
@@ -138,6 +138,7 @@ export class Checkout {
 
     paypalOnError = (error) => {
         console.error('Paypal error:', error);
+        trackCourseFail(this.courseName);
         window.location.href = failureUrl;
     };
 
@@ -147,8 +148,8 @@ export class Checkout {
 
     paypalOnAuthorize = () => {
         console.error('Paypal authorized!');
+        trackCourseBuy(this.courseName, this.amount);
         window.location.href = successUrl;
-        // trackCourseBuy();
     };
 
     onCheckoutPage = () => {
@@ -184,7 +185,7 @@ export class Checkout {
                         course: this.courseName,
                     }
                 });
-            await handleOrder(order, source, this.submitButton, this.store);
+            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount);
         } else if (this.payment === 'iban') {
             // Create a SEPA Debit source from the IBAN information.
             const sourceData = {
@@ -204,9 +205,10 @@ export class Checkout {
                 }
             };
             const {source} = await this.stripe.createSource(this.iban, sourceData);
-            await handleOrder(order, source, this.submitButton, this.store);
+            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount);
         } else {
             console.error("Unexpected payment method identifier!");
+            trackCourseFail(this.courseName);
             window.location.href = failureUrl;
         }
     }
