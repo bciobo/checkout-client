@@ -3,7 +3,8 @@ import {
     createPaypalButton, elementsOptions,
     failureUrl, successUrl,
     handleOrder,
-    trackCourseBuy, trackCourseFail
+    trackCourseBuy, trackCourseFail,
+    onCheckoutPage
 } from "./payment_utilities";
 
 // Create a map of course ids to course names
@@ -31,7 +32,7 @@ export class Checkout {
         this.submitButtonContainerId = 'submit-button-container';
         this.checkboxElementId = 'checkbox';
 
-        if (this.onCheckoutPage()) {
+        if (onCheckoutPage()) {
             // identify selected course based on URL
             let courseKey = window.location.href.substr(window.location.href.lastIndexOf('/') + 1);
             this._courseName = courseIdNameMap.get(courseKey);
@@ -174,14 +175,6 @@ export class Checkout {
         console.error('Paypal authorized!');
         trackCourseBuy(this.courseName, this.amount);
         window.location.href = successUrl;
-    };
-
-    onCheckoutPage = () => {
-        const courseKey = window.location.href.substr(
-            window.location.href.lastIndexOf("/") + 1
-        );
-        //TODO remove "kasse-design"
-        return (['kasse-ww', 'kasse-lw', 'kasse-df', 'kasse-design'].indexOf(courseKey) > -1);
     };
 
     async handleSubmit() {

@@ -3,6 +3,14 @@ export const successUrl = 'kasse-vielen-dank';
 export const failureUrl = 'kasse-fehler';
 export const waitUrl = 'kasse-warten';
 
+export const onCheckoutPage = () => {
+    const courseKey = window.location.href.substr(
+        window.location.href.lastIndexOf("/") + 1
+    );
+    //TODO remove "kasse-design"
+    return (['kasse-ww', 'kasse-lw', 'kasse-df', 'kasse-design'].indexOf(courseKey) > -1);
+};
+
 // Prepare the options for Elements to be styled accordingly.
 export const elementsOptions = {
     style: {
@@ -22,7 +30,6 @@ export const elementsOptions = {
         },
     },
 };
-
 
 export const paymentMethods = {
     card: {
@@ -140,7 +147,7 @@ export const handleOrder = async (order, source, submitButton, store, courseName
         case 'created':
             switch (source.status) {
                 case 'chargeable':
-                    submitButton.textContent = 'Zahlungsvorgang läuft…';
+                    submitButton.value = 'Zahlungsvorgang läuft…';
                     const response = await store.payOrder(order, source);
                     if (response.error) {
                         console.log('payment failed')
@@ -159,7 +166,7 @@ export const handleOrder = async (order, source, submitButton, store, courseName
                             break;
                         case 'redirect':
                             // Immediately redirect the customer.
-                            submitButton.textContent = 'Redirecting…';
+                            submitButton.value = 'Sie werden weitergeleitet…';
                             trackCourseBuy(courseName, amount);
                             window.location.replace(source.redirect.url);
                             break;
