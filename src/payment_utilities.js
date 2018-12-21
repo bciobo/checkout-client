@@ -4,7 +4,7 @@ export const failureUrl = 'kasse-fehler';
 export const waitUrl = 'kasse-warten';
 
 // Prepare the options for Elements to be styled accordingly.
-const elementsOptions = {
+export const elementsOptions = {
     style: {
         base: {
             iconColor: '#666ee8',
@@ -43,54 +43,6 @@ export const paymentMethods = {
         name: 'PayPal',
         flow: 'paypal'
     }
-};
-
-
-export const createCardElement = (stripe, elementId, submitButton, errorsElement) => {
-    // Create an instance of Elements.
-    const elements = stripe.elements();
-    const card = elements.create('card', elementsOptions);
-
-    // Mount the Card Element on the page.
-    card.mount(elementId);
-
-    // Monitor change events on the Card Element to display any errors.
-    card.addEventListener('change', ({error}) => {
-        if (error) {
-            errorsElement.textContent = error.message;
-            errorsElement.setAttribute('style', "display: block");
-        } else {
-            errorsElement.setAttribute('style', "display: none");
-        }
-        // Re-enable the Pay button.
-        submitButton.disabled = false;
-    });
-
-    return card;
-};
-
-export const createIbanElement = (stripe, elementId, submitButton, errorsElement) => {
-    // Create an instance of Elements.
-    const elements = stripe.elements();
-    // Create a IBAN Element and pass the right options for styles and supported countries.
-    const iban = elements.create('iban', {style: elementsOptions['style'], supportedCountries: ['SEPA']});
-
-    // Mount the IBAN Element on the page.
-    iban.mount('#iban-element');
-
-    // Monitor change events on the IBAN Element to display any errors.
-    iban.on('change', ({error, bankName}) => {
-        if (error) {
-            errorsElement.textContent = error.message;
-            errorsElement.setAttribute('style', "display: block");
-        } else {
-            errorsElement.setAttribute('style', "display: none");
-        }
-        // Re-enable the Pay button.
-        submitButton.disabled = false;
-    });
-
-    return iban;
 };
 
 export const createPaypalButton = (paypalButtonContainerId, amountCallback, courseNameCallback,

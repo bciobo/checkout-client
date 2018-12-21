@@ -1,21 +1,18 @@
 import {Store} from "./store";
 import {
-    createCardElement,
-    createIbanElement,
-    createPaypalButton,
-    failureUrl,
+    createPaypalButton, elementsOptions,
+    failureUrl, successUrl,
     handleOrder,
-    successUrl, trackCourseBuy, trackCourseFail
+    trackCourseBuy, trackCourseFail
 } from "./payment_utilities";
 
-// Create a map of the button ids and course names
+// Create a map of course ids to course names
 const courseIdNameMap = new Map();
 courseIdNameMap.set("kasse-ww", "Wiener Walzer");
 courseIdNameMap.set("kasse-lw", "Langsamer Walzer");
 courseIdNameMap.set("kasse-df", "Discofox");
 courseIdNameMap.set("kasse-design", "Langsamer Walzer");
 
-//TODO add google analytics service
 //TODO remove all console output
 export class Checkout {
     constructor() {
@@ -24,11 +21,11 @@ export class Checkout {
         this.formId = 'checkout-form';
         // payment options: radio inputs & buttons
         this.cardRadioInputId = 'kreditkarte-2';
-        this.cardElementId = '#card-element';
-        this.cardErrosElement = document.getElementById('card-errors');
+        this.cardElementId = 'card-element';
+        this.cardErrosElementId = 'card-errors';
         this.ibanRadioInputId = 'lastschrift-2';
-        this.ibanElementId = '#iban-element';
-        this.ibanErrosElement = document.getElementById('iban-errors');
+        this.ibanElementId = 'iban-element';
+        this.ibanErrosElementId = 'iban-errors';
         this.paypalRadioInputId = 'paypal-2';
         this.paypalButtonContainerId = 'paypal-button-container';
         this.submitButtonContainerId = 'submit-button-container';
@@ -38,15 +35,15 @@ export class Checkout {
             // identify selected course based on URL
             let courseKey = window.location.href.substr(window.location.href.lastIndexOf('/') + 1);
             this._courseName = courseIdNameMap.get(courseKey);
-
-
+            // fetch config
             this.store.getConfig().then(config => {
                 this._config = config;
-                this.stripe = Stripe(this._config.stripePublishableKey);
+                // fetch products
                 this.store.loadProducts().then(() => {
                     this.store.addItemToList(this._courseName);
+
                     this._amount = this.store.getOrderTotal();
-                    console.log('amount', this.amount, ' for', this.courseName);
+                    // initialize payment objects
                     this.createPaymentElements();
                 });
             });
@@ -74,7 +71,7 @@ export class Checkout {
             console.log('submit event', event)
             this.handleSubmit().then(res => console.log('Submit handled!'));
         });
-
+        //TODO remove listener for submit button
         this.submitButton.addEventListener('click', event => {
             console.log('submit button clicked', event)
         });
@@ -123,12 +120,39 @@ export class Checkout {
     }
 
     createPaymentElements = () => {
+        // Init Paypal payment button
         createPaypalButton(this.paypalButtonContainerId, this.amount, this.courseName, this.paypalOnValidate,
             this.paypalOnAuthorize, this.paypalOnError, this.paypalOnClick, this.checkboxElement);
+        // Init Stripe SDK
+        try {
+            this.stripe = Stripe(this._config.stripePublishableKey);
+        } catch (e) {
+            console.error('Encountered problem while initializing Stripe SDK', e);
+            return;
+        }
+        // Create an instance of Elements.
+        const elements = this.stripe.elements();
+        // Create payment elements
+        this.card = elements.create('card', elementsOptions);
+        this.iban = elements.create('iban', {style: elementsOptions['style'], supportedCountries: ['SEPA']});
+        // Mount payment elements on the page.
+        this.card.mount(`#${this.cardElementId}`);
+        this.iban.mount(`#${this.ibanElementId}`);
+        // Listen to changes and display errors
+        this.card.addEventListener('change', ({error}) => this.stripeOnChange(error, this.cardErrosElementId));
+        this.iban.addEventListener('change', ({error}) => this.stripeOnChange(error, this.ibanErrosElementId));
+    };
 
-        this.card = createCardElement(this.stripe, this.cardElementId, this.submitButton, this.cardErrosElement);
-
-        this.iban = createIbanElement(this.stripe, this.ibanElementId, this.submitButton, this.ibanErrosElement);
+    stripeOnChange = (error, errorElementId) => {
+        const errorsElement = document.getElementById(errorElementId);
+        if (error) {
+            errorsElement.textContent = error.message;
+            errorsElement.setAttribute('style', "display: block");
+        } else {
+            errorsElement.setAttribute('style', "display: none");
+        }
+        // Re-enable the Pay button.
+        this.submitButton.disabled = false;
     };
 
     paypalOnClick = () => {
