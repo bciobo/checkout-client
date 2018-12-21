@@ -35,15 +35,15 @@ export class Checkout {
         if (onCheckoutPage()) {
             // identify selected course based on URL
             let courseKey = window.location.href.substr(window.location.href.lastIndexOf('/') + 1);
-            this._courseName = courseIdNameMap.get(courseKey);
+            this.courseName = courseIdNameMap.get(courseKey);
             // fetch config
             this.store.getConfig().then(config => {
                 this._config = config;
                 // fetch products
                 this.store.loadProducts().then(() => {
-                    this.store.addItemToList(this._courseName);
+                    this.store.addItemToList(this.courseName);
 
-                    this._amount = this.store.getOrderTotal();
+                    this.amount = this.store.getOrderTotal();
                     // initialize payment objects
                     this.createPaymentElements();
                 });
@@ -98,7 +98,7 @@ export class Checkout {
 
     };
 
-    displayPaymentButton(paymentMethod) {
+    displayPaymentButton = (paymentMethod) => {
         switch (paymentMethod) {
             case 'paypal':
                 this.submitButtonContainer.setAttribute('style', "display: none");
@@ -110,15 +110,7 @@ export class Checkout {
                 this.paypalbuttonContainer.setAttribute('style', "display: none");
                 break;
         }
-    }
-
-    get courseName() {
-        return this._courseName;
-    }
-
-    get amount() {
-        return this._amount;
-    }
+    };
 
     createPaymentElements = () => {
         // Init Paypal payment button
