@@ -8,7 +8,7 @@ export class Store {
     // Retrieve the configuration from the API.
     async getConfig() {
         try {
-            const response = await fetch(`${this.urlPrefix}/config`, {mode: 'cors'});
+            const response = await fetch(`${this.urlPrefix}/config/`, {mode: 'cors'});
             return await response.json();
         } catch (err) {
             return {error: err.message};
@@ -18,7 +18,7 @@ export class Store {
     // Load the product details.
     async loadProducts() {
         try {
-            const productsResponse = await fetch(`${this.urlPrefix}/products`, {mode: 'cors'});
+            const productsResponse = await fetch(`${this.urlPrefix}/products/`, {mode: 'cors'});
             const products = (await productsResponse.json()).data;
             products.forEach(product => this.products[product.name] = product);
         } catch (err) {

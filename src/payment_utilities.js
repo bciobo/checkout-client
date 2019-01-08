@@ -8,7 +8,7 @@ export const onCheckoutPage = () => {
         window.location.href.lastIndexOf("/") + 1
     );
     //TODO remove "kasse-design"
-    return (['kasse-ww', 'kasse-lw', 'kasse-df', 'kasse-design'].indexOf(courseKey) > -1);
+    return (['kasse-ww', 'kasse-lw', 'kasse-df','kasse-ww2', 'kasse-lw2', 'kasse-df2', 'kasse-design'].indexOf(courseKey) > -1);
 };
 
 // Prepare the options for Elements to be styled accordingly.
@@ -150,7 +150,6 @@ export const handleOrder = async (order, source, submitButton, store, courseName
                     submitButton.value = 'Zahlungsvorgang läuft…';
                     const response = await store.payOrder(order, source);
                     if (response.error) {
-                        console.log('payment failed')
                         trackCourseFail(courseName);
                         window.location.href = failureUrl;
                         break;
@@ -179,7 +178,6 @@ export const handleOrder = async (order, source, submitButton, store, courseName
                     }
                     break;
                 case 'failed':
-                    console.log('source status failed')
                     trackCourseFail(courseName);
                     window.location.href = failureUrl;
                     break;
@@ -199,13 +197,11 @@ export const handleOrder = async (order, source, submitButton, store, courseName
             break;
 
         case 'failed':
-            console.warn('handling "failed" order...');
             trackCourseFail(courseName);
             window.location.href = failureUrl;
             break;
 
         case 'paid':
-            console.warn('handling "paid" order...');
             trackCourseBuy(courseName, amount);
             window.location.href = successUrl;
             break;

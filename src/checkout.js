@@ -72,14 +72,9 @@ export class Checkout {
         this.form.addEventListener('submit', event => {
             event.preventDefault();
             event.stopPropagation();
-            console.log('submit event', event)
+
             this.handleSubmit().then(res => console.log('Submit handled!'));
         });
-        //TODO remove listener for submit button
-        this.submitButton.addEventListener('click', event => {
-            console.log('submit button clicked', event)
-        });
-
         this.cardRadioInput.onchange = (ev => {
             if (ev.target.checked) {
                 this.payment = 'card';
@@ -152,7 +147,6 @@ export class Checkout {
     };
 
     paypalOnClick = () => {
-        console.log('paypal button clicked');
         if (!this.form.checkValidity()) this.submitButton.click();
     };
 
@@ -167,7 +161,6 @@ export class Checkout {
     };
 
     paypalOnAuthorize = () => {
-        console.error('Paypal authorized!');
         trackCourseBuy(this.courseName, this.amount);
         window.location.href = successUrl;
     };
@@ -219,7 +212,6 @@ export class Checkout {
             const {source} = await this.stripe.createSource(this.iban, sourceData);
             await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount);
         } else {
-            console.error("Unexpected payment method identifier!");
             trackCourseFail(this.courseName);
             window.location.href = failureUrl;
         }
