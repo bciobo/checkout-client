@@ -56,7 +56,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
                                    validateHandler, authorizeHandler, errorHandler, clickHandler, checkboxElement) => {
     paypal.Button.render({
 
-        env: 'sandbox', // sandbox | production TODO move to production
+        env: 'production', // sandbox | production TODO move to production
         locale: 'de_DE',
 
         // PayPal Client IDs - replace with your own

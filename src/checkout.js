@@ -10,14 +10,17 @@ import {
 // Create a map of course ids to course names
 const courseIdNameMap = new Map();
 courseIdNameMap.set("kasse-ww", "Wiener Walzer");
+courseIdNameMap.set("kasse-ww2", "Wiener Walzer");
 courseIdNameMap.set("kasse-lw", "Langsamer Walzer");
+courseIdNameMap.set("kasse-lw2", "Langsamer Walzer");
 courseIdNameMap.set("kasse-df", "Discofox");
+courseIdNameMap.set("kasse-df2", "Discofox");
 courseIdNameMap.set("kasse-design", "Langsamer Walzer");
 
 //TODO remove all console output
 export class Checkout {
     constructor() {
-        this.store = new Store('http://127.0.0.1:7002');
+        this.store = new Store();
         // form
         this.formId = 'checkout-form';
         // payment options: radio inputs & buttons
