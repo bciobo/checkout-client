@@ -66,7 +66,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
             production: 'AbRWBZnmecOZ6uTdLcqKWOukOCq5LiKmTDIZUSeb0olKO2U2FpOlN0ysMI0mR3r6SEsl6iPsbpOuh4xa'
         },
         style: {
-            label: 'paypal',
+            label: 'checkout',
             size: 'responsive',    // small | medium | large | responsive
             shape: 'rect',     // pill | rect
             color: 'blue',     // gold | blue | silver | black
