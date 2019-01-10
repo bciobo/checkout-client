@@ -1,3 +1,4 @@
+import "isomorphic-fetch";
 import {Store} from "./store";
 import {
     createPaypalButton, elementsOptions,
