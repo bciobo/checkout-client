@@ -154,7 +154,7 @@ export class Checkout {
     paypalOnError = (error) => {
         console.error('Paypal error:', error);
         trackCourseFail(this.courseName);
-        window.location.href = failureUrl;
+        setTimeout(() => window.location.href = failureUrl, 1000);
     };
 
     paypalOnValidate = (actions) => {
