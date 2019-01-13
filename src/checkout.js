@@ -35,6 +35,7 @@ export class Checkout {
         this.paypalButtonContainerId = 'paypal-button-container';
         this.submitButtonContainerId = 'submit-button-container';
         this.checkboxElementId = 'checkbox';
+        this.countryDropdownElementId = 'land';
 
         if (onCheckoutPage()) {
             // identify selected course based on URL
@@ -67,6 +68,7 @@ export class Checkout {
         this.paypalRadioInput = document.getElementById(this.paypalRadioInputId);
         this.paypalbuttonContainer = document.getElementById(this.paypalButtonContainerId);
         this.checkboxElement = document.getElementById(this.checkboxElementId);
+        this.countryDropdownElement = document.getElementById(this.countryDropdownElementId);
     };
 
     addListeners = () => {
@@ -94,8 +96,32 @@ export class Checkout {
                 this.displayPaymentButton(this.payment);
             }
         });
-
+        this.countryDropdownElement.onchange = (ev => {
+            if (ev.target.value === 'Anderes Land außerhalb EU') {
+                this.toggleSEPAPaymentVisibility(true);
+            } else {
+                this.toggleSEPAPaymentVisibility(false);
+            }
+        });
     };
+
+    toggleSEPAPaymentVisibility(hide){
+        const accordionElements = document.getElementsByClassName('accordion', 'w-dropdown');
+        const ibanContainer = accordionElements[accordionElements.length - 1];
+
+        if (!ibanContainer.contains(this.ibanRadioInput)) {
+            console.error('HTML Document structure changed. Cannot identify IBAN element correctly for visibility' +
+                ' toggle.');
+            return;
+        }
+        if (hide) {
+            ibanContainer.style.visibility = 'hidden';
+            ibanContainer.style.height = 0;
+        } else {
+            ibanContainer.style.visibility = 'visible';
+            ibanContainer.style.height = 'initial';
+        }
+    }
 
     displayPaymentButton = (paymentMethod) => {
         switch (paymentMethod) {
