@@ -27,6 +27,6 @@ jobs:
         key: v1-dependencies-{{ checksum "package.json" }}
 
     # Build production bundle
-    - run: npm run build-prod
+    - run: npm run build-production
 
 
