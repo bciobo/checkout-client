@@ -106,8 +106,7 @@ export class Checkout {
     };
 
     toggleSEPAPaymentVisibility(hide){
-        const accordionElements = document.getElementsByClassName('accordion', 'w-dropdown');
-        const ibanContainer = accordionElements[accordionElements.length - 1];
+        const ibanContainer = document.getElementById('iban-container');
 
         if (!ibanContainer.contains(this.ibanRadioInput)) {
             console.error('HTML Document structure changed. Cannot identify IBAN element correctly for visibility' +
