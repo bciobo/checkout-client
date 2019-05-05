@@ -91,7 +91,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
                     transactions: [
                         {
                             amount: {
-                                total: amountCallback / 100,
+                                total: amountCallback() / 100,
                                 currency: 'EUR',
                             },
                             description: courseNameCallback,
@@ -101,7 +101,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
                                     {
                                         name: courseNameCallback,
                                         sku: "1",
-                                        price: (amountCallback / 100).toString() + ".00",
+                                        price: (amountCallback() / 100).toString(),
                                         currency: "EUR",
                                         quantity: "1",
                                         description: courseNameCallback,

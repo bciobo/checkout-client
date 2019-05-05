@@ -54,7 +54,13 @@ export class Checkout {
                 this.store.loadProducts().then(() => {
                     this.store.addItemToList(this.courseName);
 
-                    this.amount = this.store.getOrderTotal();
+                    this.amount = () => {
+                        if (this.newPrice) {
+                            return this.newPrice * 100;
+                        } else {
+                            return this.store.getOrderTotal();
+                        }
+                    };
                     // initialize payment objects
                     this.createPaymentElements();
                 });
@@ -208,7 +214,7 @@ export class Checkout {
     };
 
     paypalOnAuthorize = () => {
-        trackCourseBuy(this.courseName, this.amount);
+        trackCourseBuy(this.courseName, this.amount());
         window.location.href = successUrl;
     };
 
@@ -252,7 +258,10 @@ export class Checkout {
         const order = await this.store.createOrder(
             'eur', this.store.getOrderItems(), this.email, this.name, this.country
         );
-
+        const metadata = {
+            course: this.courseName,
+        };
+        if (this.couponUsed) metadata.coupon_code = this.couponCode;
         if (this.payment === 'card') {
             // Create a Stripe source from the card information and the owner name.
             const {source} = await
@@ -260,11 +269,9 @@ export class Checkout {
                     owner: {
                         name: this.name,
                     },
-                    metadata: {
-                        course: this.courseName,
-                    }
+                    metadata: metadata
                 });
-            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount);
+            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount());
         } else if (this.payment === 'iban') {
             // Create a SEPA Debit source from the IBAN information.
             const sourceData = {
@@ -279,12 +286,10 @@ export class Checkout {
                     // once the source is charged.
                     notification_method: 'email',
                 },
-                metadata: {
-                    course: this.courseName,
-                }
+                metadata: metadata
             };
             const {source} = await this.stripe.createSource(this.iban, sourceData);
-            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount);
+            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount());
         } else {
             trackCourseFail(this.courseName);
             window.location.href = failureUrl;
