@@ -68,6 +68,37 @@ export class Store {
         }
     }
 
+    // Validate coupon input by the client and return result.
+    async validateCoupon(code, price) {
+        try {
+            // const response =
+            const response = await fetch(`${this.urlPrefix}/validate-coupon/`, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    'code': code,
+                    'price': price.replace('€', '')
+                }),
+            });
+            switch (response.status) {
+                case 400:
+                case 403:
+                case 404:
+                    let data = await response.text();
+                    console.log(data);
+                    return {'error': data};
+                case 200:
+                    data = await response.json();
+                    console.log(data);
+                    return data;
+                default:
+                    return null;
+            }
+        } catch (err) {
+            return {error: 'Something went wrong, please try again later.'};
+        }
+    }
+
     // Pay the specified order by sending a payment source alongside it.
     async payOrder(order, source) {
         try {

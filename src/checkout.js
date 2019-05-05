@@ -36,6 +36,12 @@ export class Checkout {
         this.submitButtonContainerId = 'submit-button-container';
         this.checkboxElementId = 'checkbox';
         this.countryDropdownElementId = 'land';
+        this.couponFormElementId = 'wf-form-Gutschein-Form';
+        this.couponErrorMessageElementId = 'coupon-error-message';
+        this.totalPriceElementId = 'gesamt';
+        this.discountElementId = 'discount';
+        this.discountBlockElementId = 'discount-block';
+        this.couponUsed = false;
 
         if (onCheckoutPage()) {
             // identify selected course based on URL
@@ -61,7 +67,9 @@ export class Checkout {
 
     createRefs = () => {
         this.form = document.getElementById(this.formId);
+        this.couponForm = document.getElementById(this.couponFormElementId);
         this.submitButton = this.form.querySelector('input[type=submit]');
+        this.couponSubmitButton = this.couponForm.querySelector('input[type=submit]');
         this.submitButtonContainer = document.getElementById(this.submitButtonContainerId);
         this.cardRadioInput = document.getElementById(this.cardRadioInputId);
         this.ibanRadioInput = document.getElementById(this.ibanRadioInputId);
@@ -69,6 +77,10 @@ export class Checkout {
         this.paypalbuttonContainer = document.getElementById(this.paypalButtonContainerId);
         this.checkboxElement = document.getElementById(this.checkboxElementId);
         this.countryDropdownElement = document.getElementById(this.countryDropdownElementId);
+        this.couponErrorMessage = document.getElementById(this.couponErrorMessageElementId);
+        this.totalPrice = document.getElementById(this.totalPriceElementId);
+        this.discount = document.getElementById(this.discountElementId);
+        this.discountBlock = document.getElementById(this.discountBlockElementId);
     };
 
     addListeners = () => {
@@ -77,6 +89,15 @@ export class Checkout {
             event.stopPropagation();
 
             this.handleSubmit().then(res => console.log('Submit handled!'));
+        });
+        this.couponForm.addEventListener('submit', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (this.couponUsed) {
+                this.couponErrorMessage.textContent = 'Nur ein Gutschein einlösbar pro Bestellung.';
+                return;
+            }
+            this.handleCouponSubmit().then(res => console.log('Coupon submit handled!'));
         });
         this.cardRadioInput.onchange = (ev => {
             if (ev.target.checked) {
@@ -105,7 +126,7 @@ export class Checkout {
         });
     };
 
-    toggleSEPAPaymentVisibility(hide){
+    toggleSEPAPaymentVisibility(hide) {
         const ibanContainer = document.getElementById('iban-container');
 
         if (!ibanContainer.contains(this.ibanRadioInput)) {
@@ -190,6 +211,33 @@ export class Checkout {
         trackCourseBuy(this.courseName, this.amount);
         window.location.href = successUrl;
     };
+
+    async handleCouponSubmit() {
+        // Disable the "Einlösen" button
+        this.couponSubmitButton.disabled = true;
+        // Get current price
+        this.couponCode = this.couponForm.querySelector('input[type=text]').value;
+        const price = this.totalPrice.textContent;
+        // Validate coupon code
+        const validationResult = await this.store.validateCoupon(this.couponCode, price);
+
+        if (!validationResult) {
+            this.couponErrorMessage.textContent = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
+            this.couponErrorMessage.setAttribute('style', "display: block");
+            this.couponSubmitButton.disabled = false;
+        } else if (validationResult.error) {
+            this.couponErrorMessage.textContent = validationResult.error;
+            this.couponErrorMessage.setAttribute('style', "display: block");
+            this.couponSubmitButton.disabled = false;
+        } else {
+            this.couponErrorMessage.setAttribute('style', "display: none;");
+            this.totalPrice.textContent = validationResult.new_price.toString() + '€';
+            this.discount.textContent = validationResult.discount.toString() + '€';
+            this.discountBlock.setAttribute('style', "display: block");
+            this.couponUsed = true;
+            this.newPrice = validationResult.new_price;
+        }
+    }
 
     async handleSubmit() {
         // Disable the Pay button to prevent multiple click events.
