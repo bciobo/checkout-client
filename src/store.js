@@ -85,11 +85,10 @@ export class Store {
                 case 403:
                 case 404:
                     let data = await response.text();
-                    console.log(data);
                     return {'error': data};
                 case 200:
                     data = await response.json();
-                    console.log(data);
+
                     return data;
                 default:
                     return null;
@@ -100,12 +99,14 @@ export class Store {
     }
 
     // Pay the specified order by sending a payment source alongside it.
-    async payOrder(order, source) {
+    async payOrder(order, source, newPrice, couponCode) {
+        const body = couponCode ? JSON.stringify({source, 'new_price': newPrice, 'coupon_code': couponCode}) :
+            JSON.stringify({source});
         try {
             const response = await fetch(`${this.urlPrefix}/orders/${order.id}/pay`, {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({source}),
+                body: body,
             });
             const data = await response.json();
             if (data.error) {

@@ -252,9 +252,7 @@ export class Checkout {
         this.name = this.form.querySelector('input[id=nam]').value;
         this.email = this.form.querySelector('input[id=email-4]').value;
         this.country = this.form.querySelector('select[id=land] option:checked').value;
-        console.log(this.payment, this.name, this.country);
         // Create the order using the email and shipping information from the form.
-
         const order = await this.store.createOrder(
             'eur', this.store.getOrderItems(), this.email, this.name, this.country
         );
@@ -271,7 +269,7 @@ export class Checkout {
                     },
                     metadata: metadata
                 });
-            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount());
+            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount(), this.couponCode);
         } else if (this.payment === 'iban') {
             // Create a SEPA Debit source from the IBAN information.
             const sourceData = {
@@ -289,7 +287,7 @@ export class Checkout {
                 metadata: metadata
             };
             const {source} = await this.stripe.createSource(this.iban, sourceData);
-            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount());
+            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount(), this.couponCode);
         } else {
             trackCourseFail(this.courseName);
             window.location.href = failureUrl;
