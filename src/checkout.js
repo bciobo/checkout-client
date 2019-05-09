@@ -1,5 +1,5 @@
 import "isomorphic-fetch";
-import {Store} from "./store";
+import { Store } from "./store";
 import {
     createPaypalButton, elementsOptions,
     failureUrl, successUrl,
@@ -37,6 +37,7 @@ export class Checkout {
         this.checkboxElementId = 'checkbox';
         this.countryDropdownElementId = 'land';
         this.couponFormElementId = 'wf-form-Gutschein-Form';
+        this.couponFormBlockElementId = 'coupon-form-block';
         this.couponErrorMessageElementId = 'coupon-error-message';
         this.totalPriceElementId = 'gesamt';
         this.discountElementId = 'discount';
@@ -74,6 +75,7 @@ export class Checkout {
     createRefs = () => {
         this.form = document.getElementById(this.formId);
         this.couponForm = document.getElementById(this.couponFormElementId);
+        this.couponFormBlock = document.getElementById(this.couponFormBlockElementId);
         this.submitButton = this.form.querySelector('input[type=submit]');
         this.couponSubmitButton = this.couponForm.querySelector('input[type=submit]');
         this.submitButtonContainer = document.getElementById(this.submitButtonContainerId);
@@ -90,12 +92,28 @@ export class Checkout {
     };
 
     addListeners = () => {
-        this.form.addEventListener('submit', event => {
+        this.form.onkeypress = (ev) => {
+            if ((ev.keyCode || ev.which || ev.charCode || ev.code || ev.key || 0) === 13) {
+                if (!this.form.checkValidity()) {
+                    this.form.reportValidity();
+                }
+                return false;
+            }
+            return true;
+        };
+
+        this.form.onsubmit = (event) => {
             event.preventDefault();
             event.stopPropagation();
-
-            this.handleSubmit().then(res => console.log('Submit handled!'));
-        });
+            if (!this.form.checkValidity()) {
+                this.form.reportValidity();
+            } else {
+                if (this.payment !== 'paypal') {
+                    this.handleSubmit().then(res => console.log('Submit handled!'));
+                }
+            }
+            return false;
+        };
         this.couponForm.addEventListener('submit', event => {
             event.preventDefault();
             event.stopPropagation();
@@ -167,6 +185,7 @@ export class Checkout {
         // Init Paypal payment button
         createPaypalButton(this.paypalButtonContainerId, this.amount, this.courseName, this.paypalOnValidate,
             this.paypalOnAuthorize, this.paypalOnError, this.paypalOnClick, this.checkboxElement);
+        this.payment = 'paypal';
         // Init Stripe SDK
         try {
             this.stripe = Stripe(this._config.stripePublishableKey);
@@ -237,8 +256,9 @@ export class Checkout {
             this.couponSubmitButton.disabled = false;
         } else {
             this.couponErrorMessage.setAttribute('style', "display: none;");
+            this.couponFormBlock.setAttribute('style', "display: none;");
             this.totalPrice.textContent = validationResult.new_price.toString() + '€';
-            this.discount.textContent = validationResult.discount.toString() + '€';
+            this.discount.textContent = '-' + validationResult.discount.toString() + '€';
             this.discountBlock.setAttribute('style', "display: block");
             this.couponUsed = true;
             this.newPrice = validationResult.new_price;
@@ -252,10 +272,6 @@ export class Checkout {
         this.name = this.form.querySelector('input[id=nam]').value;
         this.email = this.form.querySelector('input[id=email-4]').value;
         this.country = this.form.querySelector('select[id=land] option:checked').value;
-        // Create the order using the email and shipping information from the form.
-        const order = await this.store.createOrder(
-            'eur', this.store.getOrderItems(), this.email, this.name, this.country
-        );
         const metadata = {
             course: this.courseName,
         };
@@ -269,12 +285,18 @@ export class Checkout {
                     },
                     metadata: metadata
                 });
-            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount(), this.couponCode);
+            if (source) {
+                // Create the order using the email and shipping information from the form.
+                const order = await this.store.createOrder(
+                    'eur', this.store.getOrderItems(), this.email, this.name, this.country
+                );
+                await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount(), this.couponCode);
+            }
         } else if (this.payment === 'iban') {
             // Create a SEPA Debit source from the IBAN information.
             const sourceData = {
                 type: 'sepa_debit',
-                currency: order.currency,
+                currency: 'eur',
                 owner: {
                     name: this.name,
                     email: this.email,
@@ -287,7 +309,13 @@ export class Checkout {
                 metadata: metadata
             };
             const {source} = await this.stripe.createSource(this.iban, sourceData);
-            await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount(), this.couponCode);
+            if (source) {
+                // Create the order using the email and shipping information from the form.
+                const order = await this.store.createOrder(
+                    'eur', this.store.getOrderItems(), this.email, this.name, this.country
+                );
+                await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount(), this.couponCode);
+            }
         } else {
             trackCourseFail(this.courseName);
             window.location.href = failureUrl;
