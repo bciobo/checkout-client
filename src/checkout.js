@@ -257,8 +257,8 @@ export class Checkout {
         } else {
             this.couponErrorMessage.setAttribute('style', "display: none;");
             this.couponFormBlock.setAttribute('style', "display: none;");
-            this.totalPrice.textContent = validationResult.new_price.toString() + '€';
-            this.discount.textContent = '-' + validationResult.discount.toString() + '€';
+            this.totalPrice.textContent = validationResult.new_price.toFixed(2).toString().replace('.', ',') + '€';
+            this.discount.textContent = '-' + validationResult.discount.toFixed(2).toString().replace('.', ',') + '€';
             this.discountBlock.setAttribute('style', "display: block");
             this.couponUsed = true;
             this.newPrice = validationResult.new_price;
