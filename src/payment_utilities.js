@@ -91,7 +91,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
                     transactions: [
                         {
                             amount: {
-                                total: amountCallback / 100,
+                                total: amountCallback() / 100,
                                 currency: 'EUR',
                             },
                             description: courseNameCallback,
@@ -101,7 +101,7 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
                                     {
                                         name: courseNameCallback,
                                         sku: "1",
-                                        price: (amountCallback / 100).toString() + ".00",
+                                        price: (amountCallback() / 100).toString(),
                                         currency: "EUR",
                                         quantity: "1",
                                         description: courseNameCallback,
@@ -142,20 +142,24 @@ export const createPaypalButton = (paypalButtonContainerId, amountCallback, cour
 
 
 // Handle the order and source activation if required
-export const handleOrder = async (order, source, submitButton, store, courseName, amount) => {
+export const handleOrder = async (order, source, submitButton, store, courseName, amount, couponCode) => {
     switch (order.status) {
         case 'created':
             switch (source.status) {
                 case 'chargeable':
                     submitButton.value = 'Zahlungsvorgang läuft…';
-                    const response = await store.payOrder(order, source);
+                    const response = couponCode ? await store.payOrder(order, source, amount, couponCode) :
+                        await store.payOrder(order, source);
                     if (response.error) {
                         trackCourseFail(courseName);
                         window.location.href = failureUrl;
                         break;
                     }
-                    console.log(response);
-                    await handleOrder(response.order, response.source, submitButton, store, courseName, amount);
+                    await handleOrder(response.order, response.source, submitButton, store, courseName, amount, couponCode);
+                    break;
+                case 'consumed':
+                    trackCourseBuy(courseName, amount);
+                    window.location.href = successUrl;
                     break;
                 case 'pending':
                     switch (source.flow) {
@@ -183,6 +187,8 @@ export const handleOrder = async (order, source, submitButton, store, courseName
                     break;
                 case 'canceled':
                     // Authentication failed, offer to select another payment method.
+                    trackCourseFail(courseName);
+                    window.location.href = failureUrl;
                     break;
                 default:
                     // Order is received, pending payment confirmation.
