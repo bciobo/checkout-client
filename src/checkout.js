@@ -37,11 +37,17 @@ export class Checkout {
         this.checkboxElementId = 'checkbox';
         this.countryDropdownElementId = 'land';
         this.couponFormElementId = 'wf-form-Gutschein-Form';
+        this.couponFormElementIdMobile = 'wf-form-Gutschein-Form-2';
         this.couponFormBlockElementId = 'coupon-form-block';
+        this.couponFormBlockElementIdMobile = 'coupon-form-block-2';
         this.couponErrorMessageElementId = 'coupon-error-message';
+        this.couponErrorMessageElementIdMobile = 'coupon-error-message-2';
         this.totalPriceElementId = 'gesamt';
+        this.totalPriceElementIdMobile = 'gesamt-2';
         this.discountElementId = 'discount';
+        this.discountElementIdMobile = 'discount-2';
         this.discountBlockElementId = 'discount-block';
+        this.discountBlockElementIdMobile = 'discount-block-2';
         this.couponUsed = false;
 
         if (onCheckoutPage()) {
@@ -75,9 +81,12 @@ export class Checkout {
     createRefs = () => {
         this.form = document.getElementById(this.formId);
         this.couponForm = document.getElementById(this.couponFormElementId);
+        this.couponFormMobile = document.getElementById(this.couponFormElementIdMobile);
         this.couponFormBlock = document.getElementById(this.couponFormBlockElementId);
+        this.couponFormBlockMobile = document.getElementById(this.couponFormBlockElementIdMobile);
         this.submitButton = this.form.querySelector('input[type=submit]');
         this.couponSubmitButton = this.couponForm.querySelector('input[type=submit]');
+        this.couponSubmitButtonMobile = this.couponFormMobile.querySelector('input[type=submit]');
         this.submitButtonContainer = document.getElementById(this.submitButtonContainerId);
         this.cardRadioInput = document.getElementById(this.cardRadioInputId);
         this.ibanRadioInput = document.getElementById(this.ibanRadioInputId);
@@ -86,9 +95,13 @@ export class Checkout {
         this.checkboxElement = document.getElementById(this.checkboxElementId);
         this.countryDropdownElement = document.getElementById(this.countryDropdownElementId);
         this.couponErrorMessage = document.getElementById(this.couponErrorMessageElementId);
+        this.couponErrorMessageMobile = document.getElementById(this.couponErrorMessageElementIdMobile);
         this.totalPrice = document.getElementById(this.totalPriceElementId);
+        this.totalPriceMobile = document.getElementById(this.totalPriceElementIdMobile);
         this.discount = document.getElementById(this.discountElementId);
+        this.discountMobile = document.getElementById(this.discountElementIdMobile);
         this.discountBlock = document.getElementById(this.discountBlockElementId);
+        this.discountBlockMobile = document.getElementById(this.discountBlockElementIdMobile);
     };
 
     addListeners = () => {
@@ -122,6 +135,15 @@ export class Checkout {
                 return;
             }
             this.handleCouponSubmit().then(res => console.log('Coupon submit handled!'));
+        });
+        this.couponFormMobile.addEventListener('submit', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (this.couponUsed) {
+                this.couponErrorMessageMobile.textContent = 'Nur ein Gutschein einlösbar pro Bestellung.';
+                return;
+            }
+            this.handleCouponSubmitMobile().then(res => console.log('Coupon submit handled!'));
         });
         this.cardRadioInput.onchange = (ev => {
             if (ev.target.checked) {
@@ -260,6 +282,34 @@ export class Checkout {
             this.totalPrice.textContent = validationResult.new_price.toFixed(2).toString().replace('.', ',') + '€';
             this.discount.textContent = '-' + validationResult.discount.toFixed(2).toString().replace('.', ',') + '€';
             this.discountBlock.setAttribute('style', "display: block");
+            this.couponUsed = true;
+            this.newPrice = validationResult.new_price;
+        }
+    }
+
+    async handleCouponSubmitMobile() {
+        // Disable the "Einlösen" button
+        this.couponSubmitButtonMobile.disabled = true;
+        // Get current price
+        this.couponCode = this.couponFormMobile.querySelector('input[type=text]').value;
+        const price = this.totalPriceMobile.textContent;
+        // Validate coupon code
+        const validationResult = await this.store.validateCoupon(this.couponCode, price);
+
+        if (!validationResult) {
+            this.couponErrorMessageMobile.textContent = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
+            this.couponErrorMessageMobile.setAttribute('style', "display: block");
+            this.couponSubmitButtonMobile.disabled = false;
+        } else if (validationResult.error) {
+            this.couponErrorMessageMobile.textContent = validationResult.error;
+            this.couponErrorMessageMobile.setAttribute('style', "display: block");
+            this.couponSubmitButtonMobile.disabled = false;
+        } else {
+            this.couponErrorMessageMobile.setAttribute('style', "display: none;");
+            this.couponFormBlockMobile.setAttribute('style', "display: none;");
+            this.totalPriceMobile.textContent = validationResult.new_price.toFixed(2).toString().replace('.', ',') + '€';
+            this.discountMobile.textContent = '-' + validationResult.discount.toFixed(2).toString().replace('.', ',') + '€';
+            this.discountBlockMobile.setAttribute('style', "display: grid");
             this.couponUsed = true;
             this.newPrice = validationResult.new_price;
         }
