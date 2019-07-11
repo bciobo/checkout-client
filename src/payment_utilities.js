@@ -8,7 +8,7 @@ export const onCheckoutPage = () => {
         window.location.href.lastIndexOf("/") + 1
     );
     //TODO remove "kasse-design"
-    return (['kasse-ww', 'kasse-lw', 'kasse-df','kasse-ww2', 'kasse-lw2', 'kasse-df2', 'kasse-design'].indexOf(courseKey) > -1);
+    return (['kasse-ww', 'kasse-lw', 'kasse-df','kasse-ww2', 'kasse-lw2', 'kasse-df2', 'kasse-salsa', 'kasse-design'].indexOf(courseKey) > -1);
 };
 
 // Prepare the options for Elements to be styled accordingly.

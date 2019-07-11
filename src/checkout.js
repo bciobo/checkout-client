@@ -16,6 +16,7 @@ courseIdNameMap.set("kasse-lw", "Langsamer Walzer");
 courseIdNameMap.set("kasse-lw2", "Langsamer Walzer");
 courseIdNameMap.set("kasse-df", "Discofox");
 courseIdNameMap.set("kasse-df2", "Discofox");
+courseIdNameMap.set("kasse-salsa", "Salsa");
 courseIdNameMap.set("kasse-design", "Langsamer Walzer");
 
 //TODO remove all console output
