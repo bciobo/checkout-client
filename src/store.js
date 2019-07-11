@@ -5,6 +5,7 @@ export class Store {
         this.urlPrefix = urlPrefix;
     }
 
+
     // Retrieve the configuration from the API.
     async getConfig() {
         try {
