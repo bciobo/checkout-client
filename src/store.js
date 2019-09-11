@@ -1,5 +1,6 @@
 export class Store {
-    constructor(urlPrefix = 'https://doodance-server.herokuapp.com') {
+    // constructor(urlPrefix = 'https://doodance-server.herokuapp.com') {
+    constructor(urlPrefix = 'https://293b3586.ngrok.io') {
         this.lineItems = [];
         this.products = {};
         this.urlPrefix = urlPrefix;
@@ -17,11 +18,14 @@ export class Store {
     }
 
     // Load the product details.
-    async loadProducts() {
+    async loadProducts(courseName) {
         try {
-            const productsResponse = await fetch(`${this.urlPrefix}/products/`, {mode: 'cors'});
-            const products = (await productsResponse.json()).data;
+            const rsp = await fetch(`${this.urlPrefix}/products/${courseName}`, {mode: 'cors'});
+            const rspJson = await rsp.json();
+            const paymentIntent = rspJson.intent;
+            const products = rspJson.products.data;
             products.forEach(product => this.products[product.name] = product);
+            return paymentIntent;
         } catch (err) {
             return {error: err.message};
         }
@@ -55,7 +59,7 @@ export class Store {
                     items,
                     email,
                     'customer': customer,
-                    'country': country
+                    'country': country,
                 }),
             });
             const data = await response.json();
@@ -69,8 +73,35 @@ export class Store {
         }
     }
 
+    async updatePaymentIntent(currency, items, email, customer, country, payment_intent_id) {
+        try {
+            const sku = items[0].parent;
+            const response = await fetch(`${this.urlPrefix}/intents/${payment_intent_id}`, {
+                method: 'PUT',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({
+                    order: {
+                        currency,
+                        sku,
+                        email,
+                        'customer': customer,
+                        'country': country,
+                    }
+                }),
+            });
+            const data = await response.json();
+            if (data.error) {
+                return {error: data.error};
+            } else {
+                return data;
+            }
+        } catch (err) {
+            return {error: err.message};
+        }
+    }
+
     // Validate coupon input by the client and return result.
-    async validateCoupon(code, price) {
+    async validateCoupon(code, price, paymentIntentId) {
         try {
             // const response =
             const response = await fetch(`${this.urlPrefix}/validate-coupon/`, {
@@ -78,7 +109,8 @@ export class Store {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     'code': code,
-                    'price': price.replace('€', '')
+                    'price': price.replace('€', ''),
+                    'payment_intent_id': paymentIntentId
                 }),
             });
             switch (response.status) {
