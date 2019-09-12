@@ -17,9 +17,8 @@ courseIdNameMap.set("kasse-lw2", "Langsamer Walzer");
 courseIdNameMap.set("kasse-df", "Discofox");
 courseIdNameMap.set("kasse-df2", "Discofox");
 courseIdNameMap.set("kasse-salsa", "Salsa");
-courseIdNameMap.set("kasse-design", "Langsamer Walzer");
+courseIdNameMap.set("kasse-design", "Salsa");
 
-//TODO remove all console output
 export class Checkout {
     constructor() {
         this.store = new Store();
@@ -50,6 +49,7 @@ export class Checkout {
         this.discountBlockElementId = 'discount-block';
         this.discountBlockElementIdMobile = 'discount-block-2';
         this.couponUsed = false;
+        this.paymentIntent = null;
 
         if (onCheckoutPage()) {
             // identify selected course based on URL
@@ -59,7 +59,8 @@ export class Checkout {
             this.store.getConfig().then(config => {
                 this._config = config;
                 // fetch products
-                this.store.loadProducts().then(() => {
+                this.store.loadProducts(this.courseName).then((paymentIntent) => {
+                    this.paymentIntent = paymentIntent;
                     this.store.addItemToList(this.courseName);
 
                     this.amount = () => {
@@ -267,7 +268,7 @@ export class Checkout {
         this.couponCode = this.couponForm.querySelector('input[type=text]').value;
         const price = this.totalPrice.textContent;
         // Validate coupon code
-        const validationResult = await this.store.validateCoupon(this.couponCode, price);
+        const validationResult = await this.store.validateCoupon(this.couponCode, price, this.paymentIntent.id);
 
         if (!validationResult) {
             this.couponErrorMessage.textContent = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
@@ -282,6 +283,7 @@ export class Checkout {
             this.couponFormBlock.setAttribute('style', "display: none;");
             this.totalPrice.textContent = validationResult.new_price.toFixed(2).toString().replace('.', ',') + '€';
             this.discount.textContent = '-' + validationResult.discount.toFixed(2).toString().replace('.', ',') + '€';
+            this.paymentIntent = validationResult.payment_intent;
             this.discountBlock.setAttribute('style', "display: block");
             this.couponUsed = true;
             this.newPrice = validationResult.new_price;
@@ -295,7 +297,7 @@ export class Checkout {
         this.couponCode = this.couponFormMobile.querySelector('input[type=text]').value;
         const price = this.totalPriceMobile.textContent;
         // Validate coupon code
-        const validationResult = await this.store.validateCoupon(this.couponCode, price);
+        const validationResult = await this.store.validateCoupon(this.couponCode, price, this.paymentIntent.id);
 
         if (!validationResult) {
             this.couponErrorMessageMobile.textContent = 'Ein Fehler ist aufgetreten. Bitte versuchen Sie es erneut.';
@@ -310,6 +312,7 @@ export class Checkout {
             this.couponFormBlockMobile.setAttribute('style', "display: none;");
             this.totalPriceMobile.textContent = validationResult.new_price.toFixed(2).toString().replace('.', ',') + '€';
             this.discountMobile.textContent = '-' + validationResult.discount.toFixed(2).toString().replace('.', ',') + '€';
+            this.paymentIntent = validationResult.payment_intent;
             this.discountBlockMobile.setAttribute('style', "display: grid");
             this.couponUsed = true;
             this.newPrice = validationResult.new_price;
@@ -328,20 +331,30 @@ export class Checkout {
         };
         if (this.couponUsed) metadata.coupon_code = this.couponCode;
         if (this.payment === 'card') {
-            // Create a Stripe source from the card information and the owner name.
-            const {source} = await
-                this.stripe.createSource(this.card, {
-                    owner: {
-                        name: this.name,
+            this.submitButton.value = 'Zahlungsvorgang läuft…';
+
+            const {intent: updatedPaymentIntent} = await this.store.updatePaymentIntent(
+                'eur', this.store.getOrderItems(), this.email, this.name, this.country, this.paymentIntent.id
+            );
+            this.paymentIntent = updatedPaymentIntent;
+            // use paymentIntent to capture payment
+            const {paymentIntent, error} = await this.stripe.handleCardPayment(
+                this.paymentIntent.client_secret, this.card, {
+                    payment_method_data: {
+                        billing_details: {name: this.name, email: this.email}
                     },
-                    metadata: metadata
-                });
-            if (source) {
-                // Create the order using the email and shipping information from the form.
-                const order = await this.store.createOrder(
-                    'eur', this.store.getOrderItems(), this.email, this.name, this.country
-                );
-                await handleOrder(order, source, this.submitButton, this.store, this.courseName, this.amount(), this.couponCode);
+                    receipt_email: this.email
+                }
+            );
+
+            if (error) {
+                // Display error.message in your UI.
+                trackCourseFail(this.courseName);
+                console.error('Error while completing payment', error);
+                window.location.href = failureUrl;
+            } else {
+                trackCourseBuy(this.courseName);
+                window.location.href = successUrl;
             }
         } else if (this.payment === 'iban') {
             // Create a SEPA Debit source from the IBAN information.
