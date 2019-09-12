@@ -6,7 +6,8 @@ module.exports = api => {
         ],
         plugins: [
             "@babel/plugin-proposal-class-properties",
-            "@babel/plugin-transform-regenerator"
+            "@babel/plugin-transform-regenerator",
+            "@babel/plugin-transform-object-assign",
         ]
     }
 };

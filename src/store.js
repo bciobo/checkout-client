@@ -1,6 +1,5 @@
 export class Store {
-    // constructor(urlPrefix = 'https://doodance-server.herokuapp.com') {
-    constructor(urlPrefix = 'https://293b3586.ngrok.io') {
+    constructor(urlPrefix = 'https://doodance-server.herokuapp.com') {
         this.lineItems = [];
         this.products = {};
         this.urlPrefix = urlPrefix;
